@@ -1,0 +1,4 @@
+build/
+build-gufo/
+models/
+__pycache__/
