@@ -1,4 +1,5 @@
 #include "model/kernels/rocm/executor.hpp"
+#include "model/compat/quant_ids.hpp"
 
 #include <algorithm>
 #include <array>
@@ -87,7 +88,7 @@ WeightType SmallType(GgmlType type) {
       return WeightType::kIQ3_S;
     case GgmlType::kIQ2_S:
       return WeightType::kIQ2_S;
-    case GgmlType::kQ2_0:
+    case ::gufo::models::qwen38_flash_next::compat::kQ2_0:
       return WeightType::kQ2_0;
     default:
       throw std::logic_error("unsupported Flash-Next matrix format");

@@ -2,6 +2,7 @@
 #define GUFO_MODELS_QWEN38_FLASH_NEXT_KERNELS_ROCM_KERNELS_HPP_
 
 #include <hip/hip_fp16.h>
+#include "model/compat/quant_ids.hpp"
 #include <hip/hip_runtime.h>
 
 #include <cstddef>
@@ -67,7 +68,7 @@ constexpr bool RoutedNativeWMMA(core::GgmlType t) noexcept {
          t == core::GgmlType::kQ5_1 || t == core::GgmlType::kQ8_0 ||
          t == core::GgmlType::kIQ4_NL || t == core::GgmlType::kIQ3_XXS ||
          t == core::GgmlType::kIQ3_S || t == core::GgmlType::kIQ2_S ||
-         t == core::GgmlType::kIQ4_XS || t == core::GgmlType::kQ2_0;
+         t == core::GgmlType::kIQ4_XS || t == core::::gufo::models::qwen38_flash_next::compat::kQ2_0;
 }
 
 /// Storages the vendored MMQ vec/tiled family dequantizes natively. A

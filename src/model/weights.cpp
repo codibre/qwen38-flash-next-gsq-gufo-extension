@@ -1,4 +1,5 @@
 #include "model/weights.hpp"
+#include "model/compat/quant_ids.hpp"
 
 #include <cstdint>
 #include <initializer_list>
@@ -38,7 +39,7 @@ struct Format {
       return {256, 98};
     case GgmlType::kIQ2_S:
       return {256, 82};
-    case GgmlType::kQ2_0:
+    case ::gufo::models::qwen38_flash_next::compat::kQ2_0:
       return {64, 18};
     case GgmlType::kQ4_K:
       return {256, 144};
@@ -156,13 +157,13 @@ struct Binder {
     const auto dense = {GgmlType::kQ8_0,  GgmlType::kBF16,    GgmlType::kF16,
                         GgmlType::kF32,   GgmlType::kIQ4_NL,  GgmlType::kIQ4_XS,
                         GgmlType::kIQ3_S, GgmlType::kIQ3_XXS, GgmlType::kIQ2_S,
-                        GgmlType::kQ2_0,  GgmlType::kQ4_K,    GgmlType::kQ5_K,
+                        ::gufo::models::qwen38_flash_next::compat::kQ2_0,  GgmlType::kQ4_K,    GgmlType::kQ5_K,
                         GgmlType::kQ6_K};
     const auto experts = {
         GgmlType::kQ4_K,   GgmlType::kQ5_K,  GgmlType::kQ6_K,
         GgmlType::kQ5_1,   GgmlType::kQ8_0,  GgmlType::kIQ4_NL,
         GgmlType::kIQ4_XS, GgmlType::kIQ3_S, GgmlType::kIQ3_XXS,
-        GgmlType::kIQ2_S,  GgmlType::kQ2_0};
+        GgmlType::kIQ2_S,  ::gufo::models::qwen38_flash_next::compat::kQ2_0};
 
     l.hc_attn = Mixer(p + "hc_attn", c, true);
     l.hc_ffn = Mixer(p + "hc_ffn", c, true);
@@ -274,7 +275,7 @@ std::optional<ModelWeights> ModelWeights::Bind(const core::GgufReader& reader,
   const auto dense = {GgmlType::kQ8_0,  GgmlType::kBF16,    GgmlType::kF16,
                       GgmlType::kF32,   GgmlType::kIQ4_NL,  GgmlType::kIQ4_XS,
                       GgmlType::kIQ3_S, GgmlType::kIQ3_XXS, GgmlType::kIQ2_S,
-                      GgmlType::kQ2_0,  GgmlType::kQ4_K,    GgmlType::kQ5_K,
+                      ::gufo::models::qwen38_flash_next::compat::kQ2_0,  GgmlType::kQ4_K,    GgmlType::kQ5_K,
                       GgmlType::kQ6_K};
 
   {
