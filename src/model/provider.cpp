@@ -1,6 +1,7 @@
 #include <gufo/ext/generated/qwen38_flash_next_gsq_constants.hpp>
 #include <gufo/ext/registry.hpp>
 #include <gufo/ext/text.hpp>
+#include <gufo/ext/gguf_quant.hpp>
 
 #include "model/probe.hpp"
 #include "model/runner.hpp"
@@ -25,6 +26,12 @@ int RunFlashNextChat(const ext::TextPromptOptions& opt,
 }  // namespace gufo::models::qwen38_flash_next
 
 void qwen38_flash_next_gsq_provider_register(gufo::ext::Registry& registry) {
+  // GSQ coder files store some expert slabs with storage type id 42 (Q2_0),
+  // which gufo main's GgmlType does not include. Teach the rejected-GGUF
+  // extension fallback its geometry (64 elements / 18 bytes per block,
+  // matching kQ20BlockBytes in the rocm kernels) so the re-opened headers
+  // size correctly. Strict parsing on main still rejects id 42 untouched.
+  gufo::ext::RegisterUnknownQuantFormat({42, 64, 18});
   registry.AddProvider(gufo::ext::generated::extension_qwen38_flash_next_gsq::
                            kProvider_flash_next_gsq_coder);
 #if defined(ENGINE_ENABLE_HIP)
