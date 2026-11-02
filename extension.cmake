@@ -56,7 +56,7 @@ if(TARGET gufo_qwen38_flash_next_gsq AND ENGINE_ENABLE_HIP)
     $<$<COMPILE_LANGUAGE:HIP>:-Wno-unused-value>
     $<$<COMPILE_LANGUAGE:HIP>:-Wno-unused-command-line-argument>)
   target_include_directories(qwen38_flash_next_gsq_mmq SYSTEM PUBLIC ${QFN_GSQ_MMQ_DIR})
-  target_link_libraries(qwen38_flash_next_gsq_mmq PUBLIC hip::host roc::hipblas)
+  target_link_libraries(qwen38_flash_next_gsq_mmq PUBLIC gufo_ext_runtime hip::host roc::hipblas)
 endif()
 
 gufo_extension_target(
