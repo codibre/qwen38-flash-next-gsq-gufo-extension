@@ -50,7 +50,11 @@ if(TARGET gufo_qwen38_flash_next_gsq AND ENGINE_ENABLE_HIP)
   target_compile_definitions(qwen38_flash_next_gsq_mmq PRIVATE
     GGML_HIP_NO_VMM ENGINE_ENABLE_HIP=1)
   target_compile_options(qwen38_flash_next_gsq_mmq PRIVATE
-    $<$<COMPILE_LANGUAGE:HIP>:-O3;-ffast-math;-fno-finite-math-only;-Wno-unused-value;-Wno-unused-command-line-argument>)
+    $<$<COMPILE_LANGUAGE:HIP>:-O3>
+    $<$<COMPILE_LANGUAGE:HIP>:-ffast-math>
+    $<$<COMPILE_LANGUAGE:HIP>:-fno-finite-math-only>
+    $<$<COMPILE_LANGUAGE:HIP>:-Wno-unused-value>
+    $<$<COMPILE_LANGUAGE:HIP>:-Wno-unused-command-line-argument>)
   target_include_directories(qwen38_flash_next_gsq_mmq SYSTEM PUBLIC ${QFN_GSQ_MMQ_DIR})
   target_link_libraries(qwen38_flash_next_gsq_mmq PUBLIC hip::host roc::hipblas)
 endif()
@@ -93,7 +97,10 @@ if(TARGET gufo_qwen38_flash_next_gsq_hip)
   endif()
   target_compile_options(gufo_qwen38_flash_next_gsq_hip PRIVATE
     $<$<COMPILE_LANGUAGE:CXX>:-O2>
-    $<$<COMPILE_LANGUAGE:HIP>:-O3;-ffast-math;-fno-finite-math-only;-Wno-unused-command-line-argument>)
+    $<$<COMPILE_LANGUAGE:HIP>:-O3>
+    $<$<COMPILE_LANGUAGE:HIP>:-ffast-math>
+    $<$<COMPILE_LANGUAGE:HIP>:-fno-finite-math-only>
+    $<$<COMPILE_LANGUAGE:HIP>:-Wno-unused-command-line-argument>)
   target_include_directories(gufo_qwen38_flash_next_gsq_hip SYSTEM PUBLIC
     ${HIPCUB_INCLUDE_DIR}
     ${ROCPRIM_INCLUDE_DIR}
