@@ -4,7 +4,9 @@
 
 - [x] Include boundary: no `src/...` includes outside the repository except
       forwarded public headers (`<gufo/ext/...>`).
-- [ ] Gufo configure with `GUFO_EXTENSION_DIRS` (isolation validator green).
+- [x] Gufo configure with `GUFO_EXTENSION_DIRS` (isolation validator green,
+      2026-11-02, gufo @59f94a4a + lock patch, `extension mode=explicit;
+      included=[qwen38_flash_next_gsq]`).
 - [ ] Compile green: `gufo_qwen38_flash_next_gsq`, `..._hip`, `qwen38_flash_next_gsq_mmq`.
 - [ ] `ctest -L qwen38_flash_next_gsq` (projection ops, routed WMMA ops).
 - [ ] `gufo diagnose --section extensions` lists `qwen38_flash_next_gsq`.
