@@ -37,6 +37,11 @@ void qwen38_flash_next_gsq_provider_register(gufo::ext::Registry& registry) {
           &gufo::models::qwen38_flash_next::RunQwen38FlashNextBenchmark,
       .prompt_driver = &gufo::models::qwen38_flash_next::RunFlashNextPrompt,
       .chat_driver = &gufo::models::qwen38_flash_next::RunFlashNextChat,
+      // The GSQ coder GGUFs carry fused 3-D expert tensors with a ragged
+      // leading dimension (k=640 vs 256-element IQ blocks), which the core
+      // strict parser rejects; this provider takes the re-opened file from
+      // the rejected-GGUF extension fallback (see the fallback PR).
+      .handles_layout_rejected = true,
   });
 #endif
 }
