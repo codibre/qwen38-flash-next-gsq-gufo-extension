@@ -23,7 +23,11 @@ Findings from the port, in case they're useful for the RFC:
    shipped/unshipped key/option tier check (an external extension reusing
    `gguf:qwen4exp` / `--mtp-model` hard-fails configure while the in-tree
    model remains locked), and first-claim-wins probe ordering (the in-tree
-   `qwen4exp` probe would shadow any coder-specific extension).
+   `qwen4exp` probe would shadow any coder-specific extension). A related
+   test-side gap: extension `role:test` executables can't link core
+   implementations (`gufo_core` is allowlist-prohibited), so out-of-tree
+   suites that use `GgufReader`/crypto can't currently link; `lfm3` builds
+   its extension but I hit this the moment I tried `ctest`.
 
 So the split that works long-term: the loader alignment (+ optionally the
 quant-format publish) upstream, model/kernel code in the extension. Happy to

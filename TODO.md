@@ -7,9 +7,18 @@
 - [x] Gufo configure with `GUFO_EXTENSION_DIRS` (isolation validator green,
       2026-11-02, gufo @59f94a4a + lock patch, `extension mode=explicit;
       included=[qwen38_flash_next_gsq]`).
-- [ ] Compile green: `gufo_qwen38_flash_next_gsq`, `..._hip`, `qwen38_flash_next_gsq_mmq`.
+- [x] Compile green: full `gufo` binary with the extension (`--target gufo`,
+      2026-11-02, gfx1151).
+- [x] `gufo diagnose --section extensions` lists
+      `qwen38_flash_next_gsq 0.1.0` with `provider flash-next-gsq-coder:
+      available`.
 - [ ] `ctest -L qwen38_flash_next_gsq` (projection ops, routed WMMA ops).
-- [ ] `gufo diagnose --section extensions` lists `qwen38_flash_next_gsq`.
+      Blocked upstream: extension test executables cannot reach core
+      implementations (`gufo_core` is link-prohibited for external targets
+      and `gufo_ext_runtime` exposes headers, not their objects), so
+      out-of-tree tests that touch `GgufReader`/`HostAllocations`/crypto
+      cannot link. The same test bodies pass upstream as part of
+      gufo#939's suite against byte-identical code paths.
 - [ ] Load smoke: GSQ Coder IQ1_M shard 1 loads and answers a prompt.
 - [ ] MTP smoke with the 256-expert draft.
 - [ ] Benchmark parity vs. in-tree #939 build.
@@ -33,6 +42,13 @@
 
 ## Porting backlog
 
+- [ ] Upstream quirk to report: with `BUILD_TESTING=ON`, core
+      `tests/models/*` link in-tree extension targets even when those
+      extensions are excluded by `GUFO_EXTENSIONS`, so an extension-only
+      selection cannot configure with tests. Workaround used for
+      `ctest -L qwen38_flash_next_gsq`: explicitly select every other
+      extension as well (and keep `qwen38_flash_next` out of
+      `extensions.lock`), then build only this extension's test targets.
 - [ ] Windows packaging (upstream model supports the platform; we vendored
       Linux only so far).
 - [ ] Functional suite (upstream `functional/` registry) as an extension-side
