@@ -21,12 +21,10 @@ else
   git -C "$GUFO_DIR" checkout --quiet "$GUFO_REF"
 fi
 
-# Required: the shipped/unshipped artifact-key tier check rejects us while
-# the in-tree qwen38_flash_next is locked. Idempotent.
+# Explicit mode (-DGUFO_EXTENSIONS) alone excludes the in-tree
+# qwen38_flash_next from the shipped set; never edit extensions.lock —
+# the Nix release package derives mkServe options from it.
 cd "$GUFO_DIR"
-if grep -q '"qwen38_flash_next"' extensions.lock; then
-  git apply "$EXT_DIR/patches/gufo-lock.patch"
-fi
 
 cmake --preset "$PRESET" \
   -DGUFO_EXTENSION_DIRS="$EXT_DIR" \

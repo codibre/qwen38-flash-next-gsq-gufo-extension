@@ -48,9 +48,12 @@
   (it replaces the old #939 core-loader requirement). Until it merges,
   `scripts/build.sh` defaults to `GUFO_REF=feat/rejected-gguf-extension-fallback`.
 - Provider probes are first-claim-wins over registration order; the in-tree
-  `qwen38_flash_next` probe claims every `qwen4exp` file. Hence the lock
-  patch + explicit `GUFO_EXTENSIONS` selection. If Gufo ever adds probe
-  specificity ranking, this can coexist with the in-tree model instead.
+  `qwen38_flash_next` probe claims every `qwen4exp` file. Explicit
+  `GUFO_EXTENSIONS` selection excludes it from the shipped set (verified
+  with `extensions.lock` intact); the old `patches/gufo-lock.patch` was
+  removed because editing the lock breaks the Nix release-package serve
+  options. If Gufo ever adds probe specificity ranking, this can coexist
+  with the in-tree model without explicit mode.
 - Building this extension together with the `qwen` extension duplicates the
   vendored `gufo::models::qwen::vision` symbols at final link. Exclude
   `qwen` from the selection (default in `scripts/build.sh`).

@@ -21,23 +21,26 @@ PR #939 has three layers, and only two of them can live in an extension:
 | --- | --- |
 | Model support (config, weights, IQ decode kernels, tests, ~2.6k lines) | **this repository** (`src/model/`, `tests/`) |
 | IQ block structs / codebooks / scalar accessors in the extension-visible quant header | this repository vendors its own copies; upstream #939 proposes publishing them in core (`include/gufo/ext/changes/0.1/native-quant-formats.md`) |
-| Core GGUF loader alignment for fused 3-D expert tensors (19 lines in `src/core/gguf_reader.cpp`) | **cannot live in an extension** — it runs before any provider is consulted. Until it merges, build Gufo from the pinned ref in `scripts/build.sh` (which contains exactly this hunk). |
+| Rejected-GGUF extension failover (`src/core/gguf_reader.*`, `src/ext/`, `src/cli/model_open.hpp`) | **cannot live in an extension** — the core parser rejects the file before any provider is consulted. Supersedes #939's loader hunk: strict parse fails -> re-offered to opted-in providers under `TensorLayoutValidation::kFusedExpertSlabs`, with extension-declared storage types. Until it merges, build Gufo from the branch in `scripts/build.sh` (`feat/rejected-gguf-extension-fallback`, drafted at `Farenheith/gufo#2`). |
 
-When #939's core half lands on Gufo main, re-point `GUFO_REF` in
-`scripts/build.sh` to `gufo-org/main` and this extension becomes fully
+When the failover lands on Gufo main, re-point `GUFO_REF` in
+`scripts/build.sh` to `gufo-org/main` and this extension is pure
 out-of-tree (see [TODO.md](TODO.md)).
 
-## Why the pin is not optional
+## Why explicit extension selection is required
 
-Gufo's extension discovery hard-fails when an *unshipped* (external)
-extension reuses an artifact key, provider model id, or CLI option owned by a
-*shipped* (`extensions.lock`) extension. This extension legitimately reuses
-`gguf:qwen4exp` and `--mtp-model`, so the in-tree `qwen38_flash_next` must be
-removed from `extensions.lock` (applied by `scripts/build.sh` from
-`patches/gufo-lock.patch`). Selecting `GUFO_EXTENSIONS=qwen38_flash_next_gsq`
-also excludes the in-tree model so its probe — which claims every
-`qwen4exp` file — never competes with ours, and the vendored qwen-vision
-translation units do not collide with the ones the `qwen` extension links.
+Selecting `GUFO_EXTENSIONS=qwen38_flash_next_gsq` puts the build in explicit
+mode: the in-tree `qwen38_flash_next` is excluded from the shipped set, so
+its probe (which claims every `qwen4exp` file) never competes with ours, its
+artifact key no longer collides with ours in discovery validation, and the
+vendored qwen-vision translation units do not collide with the ones the
+`qwen` extension links. Verified: `gufo diagnose` reports `excluded
+qwen38_flash_next ... not selected in explicit mode` with `extensions.lock`
+untouched. Do **not** edit `extensions.lock` to exclude the in-tree model:
+the Nix release package generates `mkServe` options from the lock, and
+removing the entry silently drops its declared serve options (breaks
+`mk-serve-nixos-tests`).
+
 Consequence: this extension **replaces** the in-tree Flash-Next in the binary;
 it serves both the 256-expert GSQ variants and the 512-expert original.
 
@@ -50,7 +53,6 @@ it serves both the 256-expert GSQ variants and the 512-expert original.
 or from an existing Gufo checkout:
 
 ```sh
-git apply patches/gufo-lock.patch    # in the gufo checkout
 cmake --preset release \
   -DGUFO_EXTENSION_DIRS=/path/to/qwen38-flash-next-gsq-gufo-extension \
   -DGUFO_EXTENSIONS=qwen38_flash_next_gsq
@@ -85,7 +87,7 @@ extension.cmake         # gufo_ext_runtime-only targets (+ vendored mmq kernels)
 src/model/              # flash-next model fork (from #939), includes rewritten to <gufo/ext/...>
 src/family/             # qwen-family pieces needed by the model (headers; vision TUs compiled in)
 tests/                  # projection + routed-WMMA op tests ported from #939
-patches/gufo-lock.patch # required lock edit, see above
+scripts/build.sh      # pinned-branch configure+build entry point
 scripts/build.sh        # pinned build entry point
 ```
 
