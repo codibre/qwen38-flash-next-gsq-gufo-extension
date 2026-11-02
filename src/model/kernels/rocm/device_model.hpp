@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <gufo/ext/gguf_reader.hpp>
+#include "model/gguf/gsq_reader.hpp"
 #include <memory>
 #include <span>
 #include <string>
@@ -71,8 +71,8 @@ public:
 
   /// Streams tensors from the same open files used to bind their metadata.
   [[nodiscard]] static std::unique_ptr<DeviceModel> Upload(
-      const ModelWeights& weights, const core::GgufReader& reader,
-      const MtpWeights* mtp, const core::GgufReader* mtp_reader,
+      const ModelWeights& weights, const ModelGguf& reader,
+      const MtpWeights* mtp, const ModelGguf* mtp_reader,
       std::string* error_msg = nullptr);
 
   const Config& config() const noexcept { return config_; }

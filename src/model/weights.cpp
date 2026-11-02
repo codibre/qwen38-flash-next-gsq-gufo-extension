@@ -1,4 +1,5 @@
 #include "model/weights.hpp"
+#include "model/gguf/gsq_reader.hpp"
 #include "model/compat/quant_ids.hpp"
 
 #include <cstdint>
@@ -53,7 +54,7 @@ struct Format {
 }
 
 struct Binder {
-  const core::GgufReader& reader;
+  const ModelGguf& reader;
   std::string* error;
   bool ok{true};
 
@@ -262,7 +263,7 @@ std::size_t TensorRef::RowBytes() const noexcept {
   return static_cast<std::size_t>(cols / f.block) * f.bytes;
 }
 
-std::optional<ModelWeights> ModelWeights::Bind(const core::GgufReader& reader,
+std::optional<ModelWeights> ModelWeights::Bind(const ModelGguf& reader,
                                                std::string* error_msg) {
   auto config = Config::FromGguf(reader, true, error_msg);
   if (!config.has_value()) {
@@ -321,7 +322,7 @@ std::optional<ModelWeights> ModelWeights::Bind(const core::GgufReader& reader,
   return w;
 }
 
-std::optional<MtpWeights> MtpWeights::Bind(const core::GgufReader& reader,
+std::optional<MtpWeights> MtpWeights::Bind(const ModelGguf& reader,
                                            const Config& trunk,
                                            std::string* error_msg) {
   auto config = Config::FromGguf(reader, false, error_msg);

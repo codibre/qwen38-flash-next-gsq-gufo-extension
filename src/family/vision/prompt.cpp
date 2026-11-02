@@ -11,6 +11,10 @@
 #include "family/vision/image_cache.hpp"
 
 namespace gufo::models::qwen::vision {
+
+// Private tokenizer vendored with this extension.
+namespace tokenization = gufo::models::qwen38_flash_next::tokenization;
+
 namespace {
 constexpr std::uint32_t kResizeFactor = kPatchSize * kMergeSize;
 constexpr std::uint32_t kMinPixels = 65536;

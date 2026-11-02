@@ -1,4 +1,5 @@
 #include "model/config.hpp"
+#include "model/gguf/gsq_reader.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -13,7 +14,7 @@ namespace {
 constexpr std::string_view kArchitecture = "qwen4exp";
 
 struct Reader {
-  const core::GgufReader& gguf;
+  const ModelGguf& gguf;
   std::string* error;
   bool ok{true};
 
@@ -73,7 +74,7 @@ struct Reader {
 
 }  // namespace
 
-std::optional<Config> Config::FromGguf(const core::GgufReader& gguf,
+std::optional<Config> Config::FromGguf(const ModelGguf& gguf,
                                        bool require_trunk,
                                        std::string* error_msg) {
   Reader r{gguf, error_msg};

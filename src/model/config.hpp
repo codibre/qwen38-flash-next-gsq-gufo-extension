@@ -4,7 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <gufo/ext/gguf_reader.hpp>
+#include "model/gguf/gsq_reader.hpp"
 #include <optional>
 #include <string>
 #include <vector>
@@ -150,7 +150,7 @@ struct Config {
   /// Reads and validates the `qwen4exp.*` metadata. `require_trunk` rejects
   /// draft-only sidecars; the MTP sidecar is read with it false.
   [[nodiscard]] static std::optional<Config> FromGguf(
-      const core::GgufReader& reader, bool require_trunk,
+      const ModelGguf& reader, bool require_trunk,
       std::string* error_msg = nullptr);
 };
 

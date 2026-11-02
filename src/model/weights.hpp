@@ -3,7 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <gufo/ext/gguf_reader.hpp>
+#include "model/gguf/gsq_reader.hpp"
 #include <optional>
 #include <span>
 #include <string>
@@ -136,7 +136,7 @@ struct ModelWeights {
   /// Binds and validates the trunk artifact. Tensor payloads stay mapped and
   /// untouched; only headers are read.
   [[nodiscard]] static std::optional<ModelWeights> Bind(
-      const core::GgufReader& reader, std::string* error_msg = nullptr);
+      const ModelGguf& reader, std::string* error_msg = nullptr);
 };
 
 /// The MTP draft block from the `shared-*` sidecar: one attention layer with
@@ -147,7 +147,7 @@ struct MtpWeights {
   LayerWeights block;
 
   [[nodiscard]] static std::optional<MtpWeights> Bind(
-      const core::GgufReader& reader, const Config& trunk,
+      const ModelGguf& reader, const Config& trunk,
       std::string* error_msg = nullptr);
 };
 

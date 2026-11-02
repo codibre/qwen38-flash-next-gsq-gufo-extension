@@ -8,6 +8,10 @@
 
 namespace gufo::models::qwen::vision {
 
+// Private tokenizer vendored with this extension.
+namespace tokenization = gufo::models::qwen38_flash_next::tokenization;
+
+
 std::shared_ptr<const core::Image> ImageCache::Get(
     const std::shared_ptr<const std::vector<std::uint8_t>>& encoded,
     tokenization::ChatMessage::ImageDetail detail) {

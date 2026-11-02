@@ -5,7 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
-#include <gufo/ext/gguf_reader.hpp>
+#include "model/gguf/gsq_reader.hpp"
 #include <limits>
 #include <optional>
 #include <type_traits>
@@ -20,6 +20,8 @@
 #include "model/weights.hpp"
 
 namespace gufo::models::qwen38_flash_next {
+
+
 namespace {
 
 // gfx1151, served repository prompts: 4096-token chunks prefill 24K-102K
@@ -95,8 +97,8 @@ std::shared_ptr<Model> Model::Load(const std::string& model_path,
   m->options_ = options;
   // GSQ coder files carry fused expert tensors (ragged leading dims, custom
   // storage ids); this model always opens under the fused-expert-slab policy.
-  m->reader_ = core::GgufReader::OpenFile(
-      model_path, error_msg, core::TensorLayoutValidation::kFusedExpertSlabs);
+  m->reader_ = ModelGguf::OpenFile(
+      model_path, error_msg);
   if (!m->reader_) {
     return nullptr;
   }
@@ -142,9 +144,7 @@ std::shared_ptr<Model> Model::Load(const std::string& model_path,
   }
   if (!options.mtp_model_path.empty()) {
     m->mtp_reader_ =
-        core::GgufReader::OpenFile(options.mtp_model_path, error_msg,
-                                   core::TensorLayoutValidation::
-                                       kFusedExpertSlabs);
+        ModelGguf::OpenFile(options.mtp_model_path, error_msg);
     if (!m->mtp_reader_) {
       return nullptr;
     }

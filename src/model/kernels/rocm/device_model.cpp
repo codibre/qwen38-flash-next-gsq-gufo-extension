@@ -1,4 +1,5 @@
 #include "model/kernels/rocm/device_model.hpp"
+#include "model/gguf/gsq_reader.hpp"
 
 #include <hip/hip_runtime.h>
 
@@ -487,8 +488,8 @@ bool DeviceModel::SetDraftVocab(std::uint32_t prefix_rows,
 }
 
 std::unique_ptr<DeviceModel> DeviceModel::Upload(
-    const ModelWeights& w, const core::GgufReader& reader,
-    const MtpWeights* mtp, const core::GgufReader* mtp_reader,
+    const ModelWeights& w, const ModelGguf& reader,
+    const MtpWeights* mtp, const ModelGguf* mtp_reader,
     std::string* error_msg) {
   // Every bound storage must be executable by a kernel as stored: the
   // accepted set is exactly what the dense/embedding WMMA loaders and the

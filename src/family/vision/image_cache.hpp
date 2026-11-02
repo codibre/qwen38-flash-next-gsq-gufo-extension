@@ -14,6 +14,10 @@
 
 namespace gufo::models::qwen::vision {
 
+// Private tokenizer vendored with this extension.
+namespace tokenization = gufo::models::qwen38_flash_next::tokenization;
+
+
 inline constexpr std::string_view kImagePreprocessingVersion =
     "qwen38-image-bicubic-rgb8-bf16-v1";
 

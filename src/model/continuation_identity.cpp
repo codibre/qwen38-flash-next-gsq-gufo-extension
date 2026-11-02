@@ -10,6 +10,8 @@
 
 namespace gufo::models::qwen38_flash_next {
 
+
+
 bool IsSha256Hex(std::string_view value) noexcept {
   return value.size() == 64 && std::ranges::all_of(value, [](char character) {
            return (character >= '0' && character <= '9') ||

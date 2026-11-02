@@ -31,10 +31,13 @@
 #include "family/vision/prompt.hpp"
 #include "model/bench_yarn.hpp"
 #include "model/engine.hpp"
+#include "model/gguf/gsq_reader.hpp"
 #include "model/rope_scaling.hpp"
 #include "model/testing/logit_comparator.hpp"
 
 namespace gufo::models::qwen38_flash_next {
+
+
 namespace {
 
 constexpr std::size_t kDefaultContext = 4096;
@@ -167,17 +170,17 @@ void AttachImages(const ext::TextPromptOptions& opt,
   }
 }
 
-std::shared_ptr<const models::qwen::vision::Prompt> PrepareVision(
+std::shared_ptr<const qwen::vision::Prompt> PrepareVision(
     const ext::TextPromptOptions& opt,
     const tokenization::QwenTokenizer& tokenizer,
     std::span<const tokenization::ChatMessage> messages,
-    const std::shared_ptr<models::qwen::vision::Encoder>& encoder) {
+    const std::shared_ptr<qwen::vision::Encoder>& encoder) {
   if (!encoder)
     throw std::invalid_argument(
         "image input requires a matching --mmproj BF16 sidecar");
   const auto reasoning = PromptReasoningOptions(opt);
-  return std::make_shared<models::qwen::vision::Prompt>(
-      models::qwen::vision::Prepare(
+  return std::make_shared<qwen::vision::Prompt>(
+      qwen::vision::Prepare(
           tokenizer, messages, {},
           tokenization::ResolveQwenChatOptions(reasoning, opt.add_vision_id),
           encoder->identity(), kDefaultContext));
@@ -194,10 +197,21 @@ std::shared_ptr<models::qwen38_flash_next::Model> LoadFlashNextModel(
                  "--min-draft-tokens 1\n";
     return nullptr;
   }
-  if (opt.use_chat_template &&
-      !tokenization::QwenChatTemplate::ValidateGgufTemplate(reader, &error)) {
-    std::cerr << "Unsupported Flash-Next chat template: " << error << '\n';
-    return nullptr;
+  if (opt.use_chat_template) {
+    // The API-supplied core reader is empty for claimed (GSQ) artifacts, so
+    // validate the template from the file itself.
+    std::string meta_error;
+    const auto meta = models::qwen38_flash_next::gsq::ModelGguf::OpenFile(
+        opt.model_path, &meta_error, /*map_data=*/false);
+    if (meta == nullptr) {
+      std::cerr << "Error: cannot read GGUF header: " << meta_error << '\n';
+      return nullptr;
+    }
+    if (!tokenization::QwenChatTemplate::ValidateGgufTemplate(*meta,
+                                                              &error)) {
+      std::cerr << "Unsupported Flash-Next chat template: " << error << '\n';
+      return nullptr;
+    }
   }
   auto model = models::qwen38_flash_next::Model::Load(
       opt.model_path,
@@ -321,8 +335,15 @@ int RunQwen38FlashNextBenchmarkImpl(
 
   // The same --enable-yarn rule as serve, applied to the context that sizes
   // the benchmark's own requests.
+  std::string meta_error;
+  const auto meta = qfn::ModelGguf::OpenFile(options.model_path, &meta_error,
+                                             /*map_data=*/false);
+  if (meta == nullptr) {
+    std::cerr << "Error: cannot read GGUF header: " << meta_error << '\n';
+    return 1;
+  }
   const std::uint32_t qwen4exp_native_context =
-      reader->GetMetadataUint32("qwen4exp.context_length").value_or(0);
+      meta->GetMetadataUint32("qwen4exp.context_length").value_or(0);
   std::optional<qfn::RopeScaling> rope_scaling;
   std::string yarn_error;
   if (!ResolveFlashNextBenchYarn(options, qwen4exp_native_context,
@@ -420,7 +441,7 @@ int RunQwen38FlashNextBenchmarkImpl(
   }
 
   const double size_gib =
-      static_cast<double>(reader->GetSize()) / (1024.0 * 1024.0 * 1024.0);
+      static_cast<double>(model->ModelBytes()) / (1024.0 * 1024.0 * 1024.0);
   const auto model_name = model->ModelName();
   std::cout << "| " << std::left << std::setw(32) << "model"
             << " | " << std::right << std::setw(10) << "size"

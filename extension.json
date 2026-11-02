@@ -14,7 +14,7 @@
       "id": "flash-next-gsq-coder",
       "capability": "text_generation",
       "keys": [
-        "gguf:qwen4exp"
+        "gguf:qwen4exp-gsq"
       ],
       "model_ids": [
         "flash-next-gsq-coder"
@@ -24,21 +24,6 @@
       ],
       "target": "gufo_qwen38_flash_next_gsq_hip",
       "entry": "qwen38_flash_next_gsq_provider_register"
-    }
-  ],
-  "options": [
-    {
-      "name": "--mtp-model",
-      "type": "path",
-      "commands": [
-        "serve",
-        "bench",
-        "prompt"
-      ],
-      "providers": [
-        "flash-next-gsq-coder"
-      ],
-      "help": "MTP draft model path for speculative decoding"
     }
   ],
   "targets": {

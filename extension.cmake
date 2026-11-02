@@ -12,6 +12,10 @@ gufo_extension_target(
     src/model/ngram.cpp
     src/model/rope_scaling.cpp
     src/model/weights.cpp
+    src/model/gguf/gsq_reader.cpp
+    src/model/gguf/gsq_identity.cpp
+    src/family/text/tokenizer.cpp
+    src/family/text/chat_template.cpp
     src/model/bench_yarn.cpp
     src/model/probe.cpp
     src/model/continuation_identity.cpp

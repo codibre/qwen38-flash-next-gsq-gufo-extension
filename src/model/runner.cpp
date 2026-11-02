@@ -1,4 +1,6 @@
 #include "model/runner.hpp"
+#include "model/gguf/gsq_identity.hpp"
+#include "model/gguf/gsq_reader.hpp"
 
 #if defined(ENGINE_ENABLE_HIP)
 
@@ -30,6 +32,8 @@
 #include "model/rope_scaling.hpp"
 
 namespace gufo::models::qwen38_flash_next {
+
+
 namespace {
 
 using namespace gufo::ext;
@@ -61,7 +65,7 @@ bool EndsTurn(const State& state, const Tokens& tokens, int token) {
 }
 
 struct QwenImageContext final : TextPromptContext {
-  std::shared_ptr<const models::qwen::vision::Prompt> prompt;
+  std::shared_ptr<const qwen::vision::Prompt> prompt;
 };
 
 tokenization::ChatTemplateOptions QwenChatOptions(const ChatRequest& request,
@@ -93,8 +97,8 @@ std::optional<std::string> RenderQwenPrompt(const ChatRequest& request,
 
 std::optional<std::size_t> CountQwenPromptTokens(
     const ChatRequest& request, const tokenization::QwenTokenizer& tokenizer,
-    const std::shared_ptr<models::qwen::vision::Encoder>& encoder,
-    std::uint32_t max_context, models::qwen::vision::ImageCache& image_cache) {
+    const std::shared_ptr<qwen::vision::Encoder>& encoder,
+    std::uint32_t max_context, qwen::vision::ImageCache& image_cache) {
   const auto options = QwenChatOptions(request, max_context);
   const auto tools =
       request.tool_choice == ChatRequest::ToolChoice::kNone
@@ -108,7 +112,7 @@ std::optional<std::size_t> CountQwenPromptTokens(
       return std::nullopt;
     return tokens->size();
   }
-  return models::qwen::vision::Prepare(
+  return qwen::vision::Prepare(
              tokenizer, request.messages, tools, options,
              encoder ? encoder->identity() : std::string_view{},
              std::numeric_limits<std::int32_t>::max(),
@@ -118,13 +122,13 @@ std::optional<std::size_t> CountQwenPromptTokens(
 
 TextPreparedPrompt PrepareQwenPrompt(
     const ChatRequest& request, const tokenization::QwenTokenizer& tokenizer,
-    const std::shared_ptr<models::qwen::vision::Encoder>& encoder,
-    std::uint32_t max_context, models::qwen::vision::ImageCache& image_cache) {
+    const std::shared_ptr<qwen::vision::Encoder>& encoder,
+    std::uint32_t max_context, qwen::vision::ImageCache& image_cache) {
   const bool has_images = std::ranges::any_of(
       request.messages, [](const auto& m) { return !m.images.empty(); });
   const auto options = QwenChatOptions(request, max_context);
-  auto prompt = std::make_shared<models::qwen::vision::Prompt>(
-      models::qwen::vision::Prepare(
+  auto prompt = std::make_shared<qwen::vision::Prompt>(
+      qwen::vision::Prepare(
           tokenizer, request.messages,
           request.tool_choice == ChatRequest::ToolChoice::kNone
               ? std::span<const tokenization::ChatTool>{}
@@ -149,7 +153,7 @@ TextPreparedPrompt PrepareQwenPrompt(
   return {prompt->tokens, std::move(context), cache_prefix};
 }
 
-std::shared_ptr<const models::qwen::vision::Prompt> QwenPrompt(
+std::shared_ptr<const qwen::vision::Prompt> QwenPrompt(
     const std::shared_ptr<const TextPromptContext>& context) {
   if (!context)
     return {};
@@ -733,7 +737,7 @@ public:
   }
 
 private:
-  mutable models::qwen::vision::ImageCache image_cache_;
+  mutable qwen::vision::ImageCache image_cache_;
   std::shared_ptr<QwenFlashNextModel> model_;
   std::uint32_t max_context_;
   bool use_mtp_;
@@ -760,20 +764,17 @@ std::shared_ptr<ext::TextModelRunner> CreateQwenFlashNextTextRunner(
 
 std::shared_ptr<ext::TextModelRunner> CreateQwenFlashNextTextRunner(
     const ext::TextRunnerOptions& options, std::string* error) {
-  std::shared_ptr<const core::GgufReader> reader = options.reader;
-  if (!reader) {
-    std::string load_error;
-    auto reader_owner =
-        core::GgufReader::OpenFile(options.model_path, &load_error,
-                                   core::TensorLayoutValidation::
-                                       kFusedExpertSlabs);
-    if (!reader_owner) {
-      if (error)
-        *error = "Failed to open GGUF: " + load_error;
-      return nullptr;
+  // The runner owns its read of the artifact: claimed files have no core
+  // reader at all, so options.reader is never relied upon here.
+  std::string load_error;
+  auto reader_owner = ModelGguf::OpenFile(options.model_path, &load_error);
+  if (!reader_owner) {
+    if (error) {
+      *error = "Failed to open GGUF: " + load_error;
     }
-    reader = std::shared_ptr<const core::GgufReader>(std::move(reader_owner));
+    return nullptr;
   }
+  const std::shared_ptr<const ModelGguf> reader(std::move(reader_owner));
   const auto architecture =
       reader->GetMetadataString("general.architecture").value_or("");
   if (architecture != "qwen4exp") {
@@ -812,7 +813,6 @@ std::shared_ptr<ext::TextModelRunner> CreateQwenFlashNextTextRunner(
       *error = "Qwen3.8-Flash-Next MTP HTTP decoding requires --mtp-model";
     return nullptr;
   }
-  std::string load_error;
   auto model = Model::Load(
       options.model_path,
       ModelOptions{
@@ -831,7 +831,7 @@ std::shared_ptr<ext::TextModelRunner> CreateQwenFlashNextTextRunner(
   std::string model_fingerprint = options.disk_cache.model_artifact_fingerprint;
   if (!options.disk_cache.directory.empty() && model_fingerprint.empty()) {
     try {
-      model_fingerprint = core::GgufIdentityHex(*reader);
+      model_fingerprint = gsq::GsqIdentityHex(*reader);
     } catch (const std::exception& e) {
       if (error)
         *error = std::string("Flash-Next disk cache fingerprinting failed: ") +
@@ -844,16 +844,15 @@ std::shared_ptr<ext::TextModelRunner> CreateQwenFlashNextTextRunner(
   if (!options.disk_cache.directory.empty() && use_mtp &&
       draft_fingerprint.empty()) {
     std::string mtp_error;
-    auto mtp_reader = core::GgufReader::OpenFile(
-        options.speculative.draft_model_path, &mtp_error,
-        core::TensorLayoutValidation::kFusedExpertSlabs);
+    auto mtp_reader = ModelGguf::OpenFile(
+        options.speculative.draft_model_path, &mtp_error);
     if (!mtp_reader) {
       if (error)
         *error = "Failed to open MTP model: " + mtp_error;
       return nullptr;
     }
     try {
-      draft_fingerprint = core::GgufIdentityHex(*mtp_reader);
+      draft_fingerprint = gsq::GsqIdentityHex(*mtp_reader);
     } catch (const std::exception& e) {
       if (error)
         *error =

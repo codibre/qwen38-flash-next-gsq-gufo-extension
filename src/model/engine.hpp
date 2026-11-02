@@ -18,6 +18,7 @@
 #include "family/vision/encoder.hpp"
 #include "family/vision/prompt.hpp"
 #include "model/config.hpp"
+#include "model/gguf/gsq_reader.hpp"
 #include "model/draft_vocab.hpp"
 #include "model/mtp_policy.hpp"
 #include "model/ngram.hpp"
@@ -27,6 +28,8 @@ class GgufReader;
 }
 
 namespace gufo::models::qwen38_flash_next {
+
+
 
 struct ModelWeights;
 struct MtpWeights;
@@ -98,6 +101,11 @@ public:
     return options_.decode_concurrency;
   }
   [[nodiscard]] std::string ModelName() const;
+  /// Total bytes of the owned GGUF artifact (all shards).
+  [[nodiscard]] std::uint64_t ModelBytes() const noexcept {
+    return reader_ != nullptr ? static_cast<std::uint64_t>(reader_->GetSize())
+                              : 0;
+  }
   [[nodiscard]] const Config& config() const noexcept;
   [[nodiscard]] const tokenization::QwenTokenizer& tokenizer() const noexcept {
     return *tokenizer_;
@@ -116,8 +124,8 @@ private:
   Model() = default;
 
   ModelOptions options_;
-  std::shared_ptr<core::GgufReader> reader_;
-  std::shared_ptr<core::GgufReader> mtp_reader_;
+  std::shared_ptr<ModelGguf> reader_;
+  std::shared_ptr<ModelGguf> mtp_reader_;
   std::unique_ptr<ModelWeights> weights_;
   std::unique_ptr<MtpWeights> mtp_weights_;
   std::unique_ptr<tokenization::QwenTokenizer> tokenizer_;

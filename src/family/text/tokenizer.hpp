@@ -9,6 +9,8 @@
 #include <span>
 #include <string>
 #include <string_view>
+
+#include "model/gguf/gsq_reader.hpp"
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -17,7 +19,12 @@ namespace gufo::core {
 class GgufReader;
 }
 
-namespace gufo::tokenization {
+#include "family/control_tokens/control_tokens.hpp"
+
+namespace gufo::models::qwen38_flash_next::tokenization {
+
+// Shared control-token constants stay in the upstream namespace.
+using namespace gufo::tokenization;
 
 using TokenId = std::uint32_t;
 
@@ -47,7 +54,7 @@ public:
   /// Creates a tokenizer by extracting vocabulary and merges from GGUF
   /// metadata.
   [[nodiscard]] static std::unique_ptr<QwenTokenizer> CreateFromGguf(
-      const core::GgufReader& reader, std::string* error_msg = nullptr);
+      const gufo::models::qwen38_flash_next::gsq::ModelGguf& reader, std::string* error_msg = nullptr);
 
   /// Creates a tokenizer directly from token and merge lists (useful for tests
   /// and custom models).
@@ -137,6 +144,6 @@ private:
   PreTokenizer pre_tokenizer_{PreTokenizer::kNone};
 };
 
-}  // namespace gufo::tokenization
+}  // namespace gufo::models::qwen38_flash_next::tokenization
 
 #endif  // GUFO_TOKENIZATION_QWEN_TOKENIZER_HPP_

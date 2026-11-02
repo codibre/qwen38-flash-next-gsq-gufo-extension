@@ -13,6 +13,10 @@
 
 namespace gufo::models::qwen::vision {
 
+// Private tokenizer vendored with this extension.
+namespace tokenization = gufo::models::qwen38_flash_next::tokenization;
+
+
 class ImageCache;
 
 inline constexpr std::uint32_t kImageToken = 248056;
