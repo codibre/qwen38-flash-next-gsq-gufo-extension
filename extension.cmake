@@ -86,6 +86,8 @@ if(TARGET gufo_qwen38_flash_next_gsq_hip)
     SOURCES
       src/model/kernels/rocm/kernels.hip.cpp
       src/model/kernels/rocm/w8a8_wave64.hip
+      src/family/kernels/hipblaslt_gemm.hip
+      src/family/kernels/sample.hip
       src/family/vision/encoder.hip
       src/family/vision/device_input.hip
   )
