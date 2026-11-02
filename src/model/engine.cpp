@@ -93,7 +93,10 @@ std::shared_ptr<Model> Model::Load(const std::string& model_path,
     return nullptr;
   }
   m->options_ = options;
-  m->reader_ = core::GgufReader::OpenFile(model_path, error_msg);
+  // GSQ coder files carry fused expert tensors (ragged leading dims, custom
+  // storage ids); this model always opens under the fused-expert-slab policy.
+  m->reader_ = core::GgufReader::OpenFile(
+      model_path, error_msg, core::TensorLayoutValidation::kFusedExpertSlabs);
   if (!m->reader_) {
     return nullptr;
   }
@@ -139,7 +142,9 @@ std::shared_ptr<Model> Model::Load(const std::string& model_path,
   }
   if (!options.mtp_model_path.empty()) {
     m->mtp_reader_ =
-        core::GgufReader::OpenFile(options.mtp_model_path, error_msg);
+        core::GgufReader::OpenFile(options.mtp_model_path, error_msg,
+                                   core::TensorLayoutValidation::
+                                       kFusedExpertSlabs);
     if (!m->mtp_reader_) {
       return nullptr;
     }
