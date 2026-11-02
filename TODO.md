@@ -76,3 +76,11 @@
 - [ ] Docs: QUALITY/BENCHMARKS in lfm3-extension style.
 - [ ] Reconcile with #939 reviews: re-vendor on upstream PR changes until it
       merges, then rebase onto main and drop the pin.
+
+## Minimal claim-file design (2026-11-02)
+
+- Core moved to first-refusal `TextProvider::claim_file` (PR Farenheith/gufo#2,
+  9 files +110/-12). Layout-fallback / unknown-quant core APIs are gone.
+- Fixed `NthShardPath` off-by-one (shard index rewrite ate the `-`).
+- Verified E2E through llama-swap: HTTP 200, load 6629 ms, 43.9 GB VRAM,
+  27.5 tok/s, MTP drafts 39/61 accepted.
