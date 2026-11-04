@@ -7,6 +7,11 @@ such as
 with native IQ-codebook quants (IQ2_S/IQ3_XXS/IQ4_XS routed experts) and the
 MTP draft handshake for the 256-expert family.
 
+It also loads **Swift 1.5 GSQ-RCO** (`ukisai/Swift-1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF`,
+512-expert `qwen4exp` finetune) after the reader fixes in this branch; see
+[SWIFT-1.5.md](SWIFT-1.5.md) for the two metadata encodings that needed support
+and the served/bare numbers.
+
 It is a vendored fork of the in-tree `qwen38_flash_next` extension carrying
 the changes of [gufo-org/gufo#939](https://github.com/gufo-org/gufo/pull/939),
 packaged in the shape the maintainers asked for new model/quant support: a

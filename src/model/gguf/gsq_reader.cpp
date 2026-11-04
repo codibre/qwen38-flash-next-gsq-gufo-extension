@@ -6,7 +6,6 @@
 #include <unistd.h>
 
 #include <algorithm>
-#include <cstdio>
 #include <cstring>
 #include <limits>
 #include <variant>
@@ -68,6 +67,23 @@ bool ReadArray(Cursor& c, GgufMeta* out) {
         if (!c.ok) {
           return false;
         }
+      }
+      out->type = element_type;
+      out->value = std::move(values);
+      return true;
+    }
+    case GgufValueType::kBool: {
+      // Qwen3.8 GGUF stores attention.recurrent_layers as [bool]. The metadata
+      // variant has no vector<bool>, so keep the values as 0/1 u64 with the
+      // declared element type; no consumer reads this key directly.
+      std::vector<std::uint64_t> values;
+      values.reserve(static_cast<std::size_t>(count));
+      for (std::uint64_t i = 0; i < count; ++i) {
+        GgufMeta item;
+        if (!ReadValueInto(c, element_type, &item)) {
+          return false;
+        }
+        values.push_back(std::get<bool>(item.value) ? 1U : 0U);
       }
       out->type = element_type;
       out->value = std::move(values);
@@ -394,12 +410,9 @@ std::unique_ptr<GsqReader> GsqReader::OpenFile(const std::string& path,
           alignment = *raw;
         }
       }
-      if (const auto* split = reader->FindMetadata("split.count");
-          split != nullptr) {
-        if (const auto* raw = std::get_if<std::uint64_t>(&split->value);
-            raw != nullptr && *raw > 1 && *raw <= 4096) {
-          total_shards = static_cast<std::uint32_t>(*raw);
-        }
+      if (const auto split_count = reader->GetMetadataUint64("split.count");
+          split_count.has_value() && *split_count > 1 && *split_count <= 4096) {
+        total_shards = static_cast<std::uint32_t>(*split_count);
       }
     }
     shard.data_start = AlignUp(parsed.header_length, alignment);
