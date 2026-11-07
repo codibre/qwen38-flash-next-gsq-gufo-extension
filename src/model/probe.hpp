@@ -8,10 +8,9 @@
 namespace gufo::models::qwen38_flash_next {
 
 [[nodiscard]] bool ProbeFlashNext(std::string_view model_root);
+/// Accepts qwen4exp containers, including ones opened with
+/// core::GgufOpenOptions::allow_unsized_tensors (GSQ coder artifacts);
+/// the provider sets accepts_unsized_tensors and loads those tensors itself.
 [[nodiscard]] bool ProbeFlashNextGguf(const core::GgufReader& reader);
-/// First-refusal claim: takes GSQ coder containers that the core loader
-/// rejects (fused 3-D expert slabs / storage types outside the core table)
-/// and leaves everything else to the native flow.
-[[nodiscard]] bool ClaimGsqCoderFile(const std::string& model_path);
 
 }  // namespace gufo::models::qwen38_flash_next

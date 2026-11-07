@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Build Gufo with the qwen38_flash_next_gsq extension.
 #
-# The pinned GUFO_REF carries the core GGUF loader alignment hunk from
-# gufo-org/gufo#939 that extensions cannot replace. Once that hunk lands on
-# gufo main, set:  GUFO_REPO=https://github.com/gufo-org/gufo.git GUFO_REF=main
+# The pinned GUFO_REF carries the core unsized-GGUF-tensor support from
+# gufo-org/gufo#966 (allow_unsized_tensors + TextProvider::
+# accepts_unsized_tensors) that extensions cannot replace. Once that lands
+# on gufo main, set:  GUFO_REPO=https://github.com/gufo-org/gufo.git
+#                     GUFO_REF=main
 set -euo pipefail
 
 GUFO_REPO=${GUFO_REPO:-https://github.com/Farenheith/gufo.git}
-GUFO_REF=${GUFO_REF:-59f94a4a}
+GUFO_REF=${GUFO_REF:-ac631153}
 GUFO_DIR=${GUFO_DIR:-"$(cd "$(dirname "$0")/.." && pwd)/build-gufo"}
 EXT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 GUFO_EXTENSIONS_LIST=${GUFO_EXTENSIONS_LIST:-qwen38_flash_next_gsq}
