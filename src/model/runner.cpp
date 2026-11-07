@@ -237,17 +237,12 @@ public:
     // lifetime is an exact process-local identity; durable caches still
     // require the validated full artifact fingerprints below.
     if (!artifact_fingerprint.empty()) {
-      persistence_ = TextRunnerPersistenceDescriptor{
-          .compatibility_identity = QwenFlashNextCompatibilityIdentity(
-              artifact_fingerprint, use_mtp_ ? mtp_fingerprint : std::string{},
-              use_mtp_, max_context_, max_draft_tokens_,
-              model_->DecodeConcurrency(),
-              models::qwen38_flash_next::RopePositionPolicy(
-                  model_->config().rope_scaling)),
-          .payload_version =
-              models::qwen38_flash_next::Session::kSnapshotPayloadVersion,
-      };
-      component_identity_ = persistence_->compatibility_identity;
+      component_identity_ = QwenFlashNextCompatibilityIdentity(
+          artifact_fingerprint, use_mtp_ ? mtp_fingerprint : std::string{},
+          use_mtp_, max_context_, max_draft_tokens_,
+          model_->DecodeConcurrency(),
+          models::qwen38_flash_next::RopePositionPolicy(
+              model_->config().rope_scaling));
     } else {
       component_identity_ = QwenFlashNextProcessIdentity(
           model_.get(), max_context_, use_mtp_, max_draft_tokens_,
@@ -255,7 +250,6 @@ public:
     }
   }
 
-  [[nodiscard]] bool UsesComponentCache() const override { return true; }
   [[nodiscard]] std::unique_ptr<ComponentCacheResources>
   CreateComponentCacheResources(cache::ResourceLedger& ledger,
                                 std::size_t ram) const override {
@@ -289,8 +283,6 @@ public:
             TextRunnerCapabilities{
                 .supports_vision = model_->VisionEncoder() != nullptr,
                 .incremental_prefill = true,
-                .snapshot = true,
-                .fork = true,
                 .final_token_advance_required = false,
                 .incremental_text_is_exact = true,
                 .multi_token_decode = use_mtp_,
@@ -300,7 +292,6 @@ public:
                 .in_pass_checkpoint = true,
                 .partial_prefill_retention = true,
             },
-        .persistence = persistence_,
         .sampling_preset = sampling::TextModelPreset::kQwen38,
     };
   }
@@ -413,11 +404,6 @@ public:
     return model_->tokenizer().Decode(tokens);
   }
 
-  [[nodiscard]] std::unique_ptr<TextRunnerState> CreateState() const override {
-    throw std::logic_error(
-        "Flash-Next execution slots are owned by the component cache");
-  }
-
   void PreparePrefixReuse(
       TextRunnerState& state,
       std::span<const TextRunnerToken> prefix) const override {
@@ -490,12 +476,13 @@ public:
 
   [[nodiscard]] TextPrefillStep PrefillThrough(
       TextRunnerState& state, std::span<const TextRunnerToken> prompt,
-      std::size_t offset, std::size_t budget, std::size_t boundary,
-      std::unique_ptr<TextRunnerSnapshot>* checkpoint,
-      const std::function<std::unique_ptr<TextRunnerSnapshot>()>& capture)
-      const override {
+      std::size_t offset, std::size_t budget,
+      std::span<const std::size_t> boundaries,
+      const InPassConsumer& consume) const override {
     auto& qfn = RequireQwenFlashNextState(state);
-    if (!checkpoint || !capture || offset != qfn.position())
+    // This engine captures one checkpoint per pass: the adapter's
+    // PrefillThrough settles a single boundary while it is readable.
+    if (!consume || boundaries.size() != 1 || offset != qfn.position())
       throw std::logic_error("invalid component in-pass checkpoint request");
     const auto consumed = std::min<std::size_t>(
         {budget, prompt.size() - offset, model_->PrefillThroughCapacity()});
@@ -504,15 +491,12 @@ public:
     double capture_ms = 0;
     try {
       qfn.adapter().PrefillThrough(
-          qfn.slot(), prefix, static_cast<std::uint32_t>(boundary), [&] {
+          qfn.slot(), prefix, static_cast<std::uint32_t>(boundaries[0]),
+          [&] {
             const auto started = std::chrono::steady_clock::now();
-            try {
-              *checkpoint = capture();
-            } catch (...) {
-              // Optional retention may refuse; the complete live prefill is
-              // valid.
-              checkpoint->reset();
-            }
+            // consume receives the boundary's index in the request, and
+            // this engine settles exactly one boundary per pass.
+            consume(0);
             capture_ms += std::chrono::duration<double, std::milli>(
                               std::chrono::steady_clock::now() - started)
                               .count();
@@ -742,7 +726,6 @@ private:
   std::uint32_t max_context_;
   bool use_mtp_;
   std::uint32_t max_draft_tokens_;
-  std::optional<TextRunnerPersistenceDescriptor> persistence_;
   cache::Identity component_identity_;
 };
 
